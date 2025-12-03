@@ -1,8 +1,9 @@
 /**
  * Workers.js 代码高亮工具 + KV 存储、删除与列表功能 (最终版)
- * * 部署前必读：
- * 1. 在 Cloudflare 创建 KV Namespace。
- * 2. 在 Worker 设置中绑定 KV，变量名为: CODE_KV (必须完全一致)
+ *
+ * 验证模式：单访问令牌/密码 (ACCESS_PASSWORD)
+ * 验证方式：URL参数 (?token=) 或 HTTP头 (X-Access-Token)
+ * 状态码修改：未授权访问返回 403 Forbidden，以避免浏览器弹出原生 Basic Auth 弹窗。
  */
 
 export default {
@@ -10,10 +11,57 @@ export default {
       const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Access-Token',
       };
   
       const url = new URL(request.url);
+  
+      // 0. 访问密码验证 (如果 ACCESS_PASSWORD 环境变量已设置)
+      if (env.ACCESS_PASSWORD) {
+          const expectedPassword = env.ACCESS_PASSWORD;
+          // 尝试从请求头或 URL 参数中获取令牌
+          const requestToken = request.headers.get('X-Access-Token') || url.searchParams.get('token');
+  
+          if (requestToken !== expectedPassword) {
+              // 返回 403 Forbidden 页面和密码输入框，以阻止浏览器弹出原生的 Basic Auth 认证框。
+              const unauthorizedHtml = `<!DOCTYPE html>
+              <html lang="zh-CN">
+              <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>需要访问令牌</title>
+                  <style>
+                      body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f4f4f4; }
+                      .box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; max-width: 350px; }
+                      h2 { color: #667eea; margin-bottom: 20px; }
+                      input[type="password"] { padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+                      button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background 0.3s; }
+                      button:hover { background: #764ba2; }
+                  </style>
+              </head>
+              <body>
+                  <div class="box">
+                      <h2>🔒 需要访问令牌</h2>
+                      <p>请输入访问令牌/密码以继续操作。</p>
+                      <form onsubmit="event.preventDefault(); window.location.href=window.location.pathname+'?token=' + document.getElementById('tokenInput').value;">
+                          <input type="password" id="tokenInput" placeholder="访问令牌/密码" required>
+                          <button type="submit">提交</button>
+                      </form>
+                      <p style="font-size:0.8em; color:#999; margin-top: 15px;">（API 请求请使用 X-Access-Token 头）</p>
+                  </div>
+              </body>
+              </html>`;
+              
+              return new Response(unauthorizedHtml, {
+                  status: 403, // 更改为 403 Forbidden
+                  headers: {
+                      'Content-Type': 'text/html; charset=UTF-8',
+                      // 移除 WWW-Authenticate 头
+                  },
+              });
+          }
+      }
+  
   
       // 1. 处理 CORS 预检
       if (request.method === 'OPTIONS') {
@@ -325,6 +373,11 @@ export default {
               return urlParams.get('id');
           }
   
+          function getAuthToken() {
+              const urlParams = new URLSearchParams(window.location.search);
+              return urlParams.get('token');
+          }
+  
           function updateDeleteButton() {
               const id = getLoadedId();
               const btnDelete = document.getElementById("btnDelete");
@@ -378,9 +431,13 @@ export default {
           async function fetchSavedList() {
               const listBody = document.getElementById('listBody');
               listBody.innerHTML = '<p class="list-empty">加载中... <div class="spinner" style="margin:10px auto;"></div></p>';
+              
+              // 自动获取 token，用于 API 访问
+              const token = getAuthToken();
+              const headers = token ? { 'X-Access-Token': token } : {};
   
               try {
-                  const response = await fetch('/api/list');
+                  const response = await fetch('/api/list', { headers });
                   const data = await response.json();
   
                   if (response.ok && data.success) {
@@ -392,7 +449,7 @@ export default {
                               item.textContent = id;
                               item.onclick = () => {
                                   // 加载代码并关闭 Modal
-                                  window.location.href = window.location.pathname + '?id=' + id;
+                                  window.location.href = window.location.pathname + '?id=' + id + (token ? '&token=' + token : '');
                                   closeSavedList();
                               };
                               listBody.appendChild(item);
@@ -416,6 +473,16 @@ export default {
               }
           }
           // --- End List Functions ---
+          
+          // --- API Helper Function (Added for Auth) ---
+          function getAuthHeaders(includeContentType = true) {
+              const token = getAuthToken();
+              const headers = {};
+              if (token) headers['X-Access-Token'] = token;
+              if (includeContentType) headers['Content-Type'] = 'text/plain';
+              return headers;
+          }
+          // --- End API Helper Function ---
   
           async function saveToCloud() {
               const code = document.getElementById("codeInput").value;
@@ -430,14 +497,17 @@ export default {
               btn.disabled = true;
   
               try {
+                  const headers = getAuthHeaders();
                   const response = await fetch('/api/save', {
                       method: 'POST',
+                      headers: headers,
                       body: code
                   });
                   const data = await response.json();
                   
                   if(data.success) {
-                      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + data.id;
+                      const tokenParam = getAuthToken() ? '&token=' + getAuthToken() : '';
+                      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + data.id + tokenParam;
                       window.history.pushState({path:newUrl},'',newUrl);
                       
                       navigator.clipboard.writeText(newUrl);
@@ -458,8 +528,12 @@ export default {
               const loader = document.getElementById("loadingOverlay");
               loader.style.display = "flex";
               
+              const token = getAuthToken();
+              const tokenParam = token ? '&token=' + token : '';
+              const headers = token ? { 'X-Access-Token': token } : {};
+  
               try {
-                  const response = await fetch('/api/get?id=' + id);
+                  const response = await fetch('/api/get?id=' + id + tokenParam, { headers });
                   if(response.ok) {
                       const data = await response.json();
                       document.getElementById("codeInput").value = data.code;
@@ -467,7 +541,7 @@ export default {
                       updateInputStats();
                       showToast("代码加载成功");
                   } else {
-                      showToast("未找到指定的代码片段", true);
+                      showToast("未找到指定的代码片段或认证失败", true);
                       clearAll(true);
                   }
               } catch(e) {
@@ -494,8 +568,10 @@ export default {
               btn.disabled = true;
   
               try {
+                  const headers = getAuthHeaders(false); // No Content-Type needed for DELETE
                   const response = await fetch('/api/delete?id=' + id, {
-                      method: 'DELETE'
+                      method: 'DELETE',
+                      headers: headers
                   });
                   
                   const data = await response.json();
@@ -560,8 +636,6 @@ export default {
               // Operators
               const operators=["+","-","*","/","==","===","!=","!==",">","<",">=","<=","&&","||","!","++","--","%","&","|","^","~","<<",">>",">>>","+=","-=","*=","/=","%=","&=","|=","^=","<<=",">>=",">>>="];
               operators.forEach(function(op){
-                  // FIX: 使用十六进制编码避免在 Workers 模板字符串中的解析错误
-                  // 字符 [ 和 ] 的十六进制编码为 \x5b 和 \x5d
                   const escapedOp = op.replace(/[.*+?^\\$()|\\x5b\\x5d\\x5c]/g, '\\\\$&');
                   const regex=new RegExp('\\\\\\\\s*('+escapedOp+')\\\\\\\\s*','g');
                   highlighted=highlighted.replace(regex,' <span class="operator">$1</span> ')
@@ -611,9 +685,13 @@ export default {
               document.getElementById("inputStats").textContent="0 行 · 0 字符";
               document.getElementById("outputStats").textContent="0 行 · 0 关键字";
               
-              // 清除 URL 参数
-              const url = window.location.protocol + "//" + window.location.host + window.location.pathname;
-              window.history.pushState({path:url},'',url);
+              // 清除 URL 参数 (保留 token)
+              const token = getAuthToken();
+              let newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+              if (token) {
+                  newUrl += '?token=' + token;
+              }
+              window.history.pushState({path:newUrl},'',newUrl);
               
               updateDeleteButton();
               
