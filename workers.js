@@ -99,7 +99,6 @@ export default {
                           <input type="password" id="tokenInput" placeholder="访问令牌/密码" required>
                           <button type="submit">解锁</button>
                       </form>
-                      <p class="hint">（API 请求请使用 X-Access-Token 头）</p>
                   </div>
               </body>
               </html>`;
