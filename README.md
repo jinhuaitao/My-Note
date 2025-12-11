@@ -1,4 +1,4 @@
-# 这是一个基于 Cloudflare Workers 和 Cloudflare R2 的云端笔记/代码片段管理工具（Cloud Note v9.3）。
+# 这是一个基于 Cloudflare Workers 和 Cloudflare R2 的云端笔记/代码片段管理工具（Cloud Note）。
 
 它具有以下特点：
 
