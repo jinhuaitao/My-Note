@@ -592,6 +592,7 @@ function renderSharePage(code, filename, opts) {
     PREVIEW_BUTTON: previewButton,
     PREVIEW_KIND: md ? 'markdown' : (htmlFile ? 'html' : ''),
     RAW_JSON: toScriptJson(code),
+    META_JSON: toScriptJson({ filename: filename, kind: md ? 'markdown' : (htmlFile ? 'html' : '') }),
   }));
 }
 

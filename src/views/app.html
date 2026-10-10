@@ -1566,7 +1566,9 @@
     return api('/api/list').then(function (res) {
       S.files = res.files || [];
       S.totalSize = res.totalSize || 0;
-      if ($('#filesModal').classList.contains('open')) renderFiles();
+      // 无条件渲染：数据是唯一真相。若只依赖「弹窗已 open」，
+      // 接口返回足够快时会停留在骨架屏上。
+      renderFiles();
       return res;
     }).catch(function (e) {
       toast('加载文件列表失败：' + e.message, 'err');
@@ -1862,7 +1864,7 @@
   function refreshShares() {
     return api('/api/share/list').then(function (res) {
       S.shares = res.shares || [];
-      if ($('#sharesModal').classList.contains('open')) renderShares();
+      renderShares();
       return res;
     }).catch(function (e) {
       toast('加载分享列表失败：' + e.message, 'err');

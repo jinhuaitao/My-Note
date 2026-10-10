@@ -135,12 +135,18 @@
   <div class="toast" id="toast"></div>
 
   <script id="rawData" type="application/json">{{RAW_JSON}}</script>
+  <script id="metaData" type="application/json">{{META_JSON}}</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
   <script>
   (function () {
     var PREVIEW_KIND = '{{PREVIEW_KIND}}';
+    var META = {};
+    try { META = JSON.parse(document.getElementById('metaData').textContent || '{}') || {}; } catch (e) { META = {}; }
+    // 文件名在 HTML 里是转义过的（用于展示），放进 JS 字符串必须用 JSON 版本，
+    // 否则名字里带引号时会变成 &#039; 这样的实体。
+    var FILE_NAME = META.filename || 'download.txt';
     var raw = '';
     try { raw = JSON.parse(document.getElementById('rawData').textContent || '""') || ''; } catch (e) { raw = ''; }
 
@@ -179,7 +185,7 @@
       var blob = new Blob([raw], { type: 'text/plain;charset=utf-8' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = '{{FILENAME}}';
+      a.download = FILE_NAME;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
