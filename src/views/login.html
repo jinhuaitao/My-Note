@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · {{SITE_TITLE}}</title>
+{{FAVICON}}
+<style>
+  :root{
+    --bg:#08080c; --panel:rgba(22,22,30,.72); --border:rgba(255,255,255,.09);
+    --border-strong:rgba(255,255,255,.16); --text:#e8e8f0; --dim:#9a9aae; --mute:#63637a;
+    --accent:#7c5cff; --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:var(--bg);color:var(--text);
+    background-image:
+      radial-gradient(900px 520px at 50% -10%, rgba(124,92,255,.22), transparent 62%),
+      radial-gradient(700px 420px at 90% 100%, rgba(34,211,238,.10), transparent 60%);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,sans-serif;
+  }
+  .card{
+    width:100%;max-width:392px;padding:38px 34px 30px;
+    background:var(--panel);border:1px solid var(--border);border-radius:20px;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+  .brand-mark{
+    width:42px;height:42px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#7c5cff,#4b32c3);box-shadow:0 8px 20px rgba(124,92,255,.35);color:#fff;
+  }
+  .brand-text h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.2px}
+  .brand-text p{margin:3px 0 0;font-size:12px;color:var(--mute)}
+  label{display:block;font-size:12px;color:var(--dim);margin:0 0 7px}
+  .field{margin-bottom:15px}
+  input[type=text],input[type=password]{
+    width:100%;padding:12px 14px;border-radius:11px;font-size:14px;font-family:inherit;
+    background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;outline:none;
+    transition:border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+  input[type=text]:focus,input[type=password]:focus{
+    border-color:var(--accent);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(124,92,255,.14);
+  }
+  .btn{
+    width:100%;margin-top:6px;padding:13px;border-radius:11px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,#7c5cff,#6d4bf0);color:#fff;font-size:14px;font-weight:600;
+    font-family:inherit;transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+  }
+  .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 26px rgba(124,92,255,.36)}
+  .btn:disabled{opacity:.6;cursor:default}
+  .row{display:flex;align-items:center;justify-content:space-between;margin-top:16px;font-size:12px;color:var(--mute)}
+  .link{color:var(--dim);cursor:pointer;text-decoration:none;border-bottom:1px dashed rgba(255,255,255,.18);padding-bottom:1px}
+  .link:hover{color:#fff}
+  #tsBox{margin:16px 0 4px;display:flex;justify-content:center;min-height:0}
+  #tsBox:empty{margin:0}
+  .alert{
+    margin-bottom:16px;padding:11px 14px;border-radius:11px;font-size:12.5px;line-height:1.65;
+    display:none;white-space:pre-wrap;word-break:break-word;
+  }
+  .alert.show{display:block}
+  .alert.error{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.28);color:#fca5a5}
+  .alert.warn{background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.28);color:#fcd34d}
+  .alert.info{background:rgba(124,92,255,.12);border:1px solid rgba(124,92,255,.3);color:#c4b5fd}
+  .codes{display:block;margin-top:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;opacity:.8}
+  .diag{margin-top:14px;font-size:12px;line-height:1.7;color:var(--dim);display:none;white-space:pre-wrap}
+  .diag.show{display:block}
+  .foot{margin-top:22px;text-align:center;font-size:11px;color:#4c4c60}
+  .notice{
+    margin-bottom:16px;padding:10px 14px;border-radius:11px;font-size:12.5px;
+    background:rgba(124,92,255,.1);border:1px solid rgba(124,92,255,.25);color:#c4b5fd;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>{{SITE_TITLE}}</h1>
+        <p>{{SITE_SUBTITLE}}</p>
+      </div>
+    </div>
+
+    {{NOTICE}}
+    <div class="alert error" id="alertError"></div>
+    <div class="alert warn" id="alertWarn"></div>
+
+    <form id="loginForm" autocomplete="on">
+      <div class="field">
+        <label for="u">用户名</label>
+        <input type="text" id="u" name="username" placeholder="请输入用户名" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="p">密码</label>
+        <input type="password" id="p" name="password" placeholder="请输入密码" required autocomplete="current-password">
+      </div>
+      <div id="tsBox"></div>
+      <button class="btn" id="submitBtn" type="submit">登 录</button>
+    </form>
+
+    <div class="row">
+      <a class="link" id="diagLink">人机验证自检</a>
+      <span id="tsState"></span>
+    </div>
+    <div class="diag" id="diagOut"></div>
+    <div class="foot">Cloudflare Workers · R2 存储</div>
+  </div>
+
+<script id="bootData" type="application/json">{{BOOT}}</script>
+<script>
+(function () {
+  var BOOT = JSON.parse(document.getElementById('bootData').textContent || '{}');
+  var TS = (BOOT && BOOT.turnstile) || { enabled: false, siteKey: '' };
+  var form = document.getElementById('loginForm');
+  var btn = document.getElementById('submitBtn');
+  var errBox = document.getElementById('alertError');
+  var warnBox = document.getElementById('alertWarn');
+  var tsBox = document.getElementById('tsBox');
+  var tsState = document.getElementById('tsState');
+  var tsWidgetId = null;
+  var tsTimer = null;
+  var submitting = false;
+
+  function showErr(msg, codes) {
+    errBox.textContent = msg || '';
+    if (codes && codes.length) {
+      var span = document.createElement('span');
+      span.className = 'codes';
+      span.textContent = '错误码：' + codes.join(', ');
+      errBox.appendChild(span);
+    }
+    errBox.classList.add('show');
+  }
+  function hideErr() { errBox.classList.remove('show'); errBox.textContent = ''; }
+  function showWarn(msg) { warnBox.textContent = msg; warnBox.classList.add('show'); }
+
+  /* ---------- Turnstile ---------- */
+  var TS_HINTS = {
+    '110100': 'Site Key 无效或格式不对（复制不完整，或把 Secret Key 填到了 Site Key 框里）。',
+    '400020': 'Site Key 无效：请检查是否把 Secret Key 填到了 Site Key 的位置。',
+    '110110': 'Site Key 不存在：它可能不属于当前 Cloudflare 账号，或 widget 已被删除。',
+    '110200': '域名未授权：请到该 Turnstile widget 的 Hostname Management 里加入当前域名（workers.dev 需要显式填写，通配符无效）。',
+    '400021': '域名与 Site Key 不匹配：同「域名未授权」，去 Hostname Management 添加域名。',
+    '110500': '组件模式不匹配：请把 widget 的模式改成 Managed。',
+    '110600': '验证挑战超时，请刷新后重试。',
+    '400070': 'Site Key 已停用：请重新启用或换一个 widget。'
+  };
+
+  window.__onTurnstileLoad = function () {
+    try { renderTurnstile(); } catch (e) { console.error(e); }
+  };
+
+  function renderTurnstile() {
+    if (!TS.enabled || !TS.siteKey) {
+      tsState.textContent = TS.enabled ? '已启用但 Site Key 为空' : '未启用人机验证';
+      if (TS.enabled && !TS.siteKey) {
+        showErr('服务端已启用人机验证，但 Site Key 为空，无法渲染验证框。请到「设置 → 安全」补全。');
+      }
+      return;
+    }
+    if (!window.turnstile || typeof window.turnstile.render !== 'function') return;
+    if (tsWidgetId !== null) return;
+    tsWidgetId = window.turnstile.render(tsBox, {
+      sitekey: TS.siteKey,
+      theme: 'dark',
+      callback: function () { hideErr(); },
+      'error-callback': function (code) {
+        var key = String(code || '');
+        showErr(TS_HINTS[key] || ('人机验证组件异常（' + key + '）。'), key ? [key] : []);
+        return true;
+      },
+      'timeout-callback': function () {
+        showErr(TS_HINTS['110600']);
+      }
+    });
+    tsState.textContent = '人机验证已启用';
+  }
+
+  if (TS.enabled && TS.siteKey) {
+    var s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=__onTurnstileLoad';
+    s.async = true;
+    s.defer = true;
+    document.head.appendChild(s);
+    // 兜底：脚本被广告拦截插件 / CSP 干掉时 onload 永不触发
+    tsTimer = setTimeout(function () {
+      if (!window.turnstile) {
+        showErr('验证码脚本未能加载。请检查是否被广告拦截插件拦截，或尝试强制刷新页面。');
+        tsState.textContent = '验证组件加载失败';
+      }
+    }, 8000);
+  } else {
+    renderTurnstile();
+  }
+
+  /* ---------- 提交 ---------- */
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (submitting) return;
+    hideErr();
+    warnBox.classList.remove('show');
+
+    var token = null;
+    if (TS.enabled && TS.siteKey) {
+      if (window.turnstile && tsWidgetId !== null) {
+        token = window.turnstile.getResponse(tsWidgetId);
+      }
+      if (!token) {
+        showErr('请先完成人机验证。如果页面上没有出现验证框，请强制刷新页面后重试。');
+        return;
+      }
+    }
+
+    submitting = true;
+    btn.disabled = true;
+    btn.textContent = '登录中…';
+
+    fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('u').value,
+        password: document.getElementById('p').value,
+        turnstileToken: token
+      })
+    }).then(function (res) {
+      return res.json().catch(function () { return { message: '服务端返回了非 JSON 内容（HTTP ' + res.status + '）' }; })
+        .then(function (data) { return { status: res.status, data: data }; });
+    }).then(function (r) {
+      if (r.data && r.data.success) {
+        if (r.data.warning) {
+          try { sessionStorage.setItem('np_login_warning', r.data.warning); } catch (e) {}
+        }
+        location.replace('/');
+        return;
+      }
+      showErr((r.data && r.data.message) || ('登录失败（HTTP ' + r.status + '）'), (r.data && r.data.codes) || []);
+      if (window.turnstile && tsWidgetId !== null) { try { window.turnstile.reset(tsWidgetId); } catch (e) {} }
+      submitting = false;
+      btn.disabled = false;
+      btn.textContent = '登 录';
+    }).catch(function (e) {
+      showErr('网络错误：' + (e && e.message ? e.message : e));
+      submitting = false;
+      btn.disabled = false;
+      btn.textContent = '登 录';
+    });
+  });
+
+  /* ---------- 自检 ---------- */
+  var diagOut = document.getElementById('diagOut');
+  document.getElementById('diagLink').addEventListener('click', function () {
+    diagOut.classList.add('show');
+    diagOut.textContent = '正在自检…';
+    fetch('/api/turnstile/diagnose').then(function (r) { return r.json(); }).then(function (d) {
+      var lines = [];
+      lines.push('结论：' + (d.conclusion || 'unknown'));
+      lines.push('当前域名：' + (d.host || '-'));
+      lines.push('配置来源：' + (d.source || '-') + '   模式：' + (d.mode || '-'));
+      lines.push('Site Key：' + (d.siteKeyMasked || '（未配置）'));
+      lines.push('Secret Key：' + (d.secretKeyMasked || '（未配置）'));
+      if (d.serverCodes && d.serverCodes.length) lines.push('服务端错误码：' + d.serverCodes.join(', '));
+      if (d.advice && d.advice.length) {
+        lines.push('');
+        lines.push('建议：');
+        for (var i = 0; i < d.advice.length; i++) lines.push('· ' + d.advice[i]);
+      }
+      diagOut.textContent = lines.join('\n');
+    }).catch(function (e) {
+      diagOut.textContent = '自检失败：' + (e && e.message ? e.message : e);
+    });
+  });
+})();
+</script>
+</body>
+</html>

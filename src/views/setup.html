@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>初始化 · {{SITE_TITLE}}</title>
+{{FAVICON}}
+<style>
+  :root{
+    --bg:#08080c; --panel:rgba(22,22,30,.72); --border:rgba(255,255,255,.09);
+    --text:#e8e8f0; --dim:#9a9aae; --mute:#63637a; --accent:#7c5cff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:var(--bg);color:var(--text);
+    background-image:
+      radial-gradient(900px 520px at 50% -10%, rgba(124,92,255,.22), transparent 62%),
+      radial-gradient(700px 420px at 90% 100%, rgba(34,211,238,.10), transparent 60%);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,sans-serif;
+  }
+  .card{
+    width:100%;max-width:400px;padding:38px 34px 30px;
+    background:var(--panel);border:1px solid var(--border);border-radius:20px;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+  .brand-mark{
+    width:42px;height:42px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#7c5cff,#4b32c3);box-shadow:0 8px 20px rgba(124,92,255,.35);color:#fff;
+  }
+  .brand-text h1{font-size:16px;margin:0;font-weight:600}
+  .brand-text p{margin:3px 0 0;font-size:12px;color:var(--mute)}
+  label{display:block;font-size:12px;color:var(--dim);margin:0 0 7px}
+  .field{margin-bottom:15px}
+  input{
+    width:100%;padding:12px 14px;border-radius:11px;font-size:14px;font-family:inherit;
+    background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;outline:none;
+    transition:border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+  input:focus{border-color:var(--accent);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(124,92,255,.14)}
+  .btn{
+    width:100%;margin-top:6px;padding:13px;border-radius:11px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,#7c5cff,#6d4bf0);color:#fff;font-size:14px;font-weight:600;
+    font-family:inherit;transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+  }
+  .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 26px rgba(124,92,255,.36)}
+  .btn:disabled{opacity:.6;cursor:default}
+  .alert{
+    margin-bottom:16px;padding:11px 14px;border-radius:11px;font-size:12.5px;line-height:1.6;
+    background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.28);color:#fca5a5;display:none;
+  }
+  .alert.show{display:block}
+  .tips{margin-top:20px;padding:14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border)}
+  .tips h2{font-size:12px;margin:0 0 8px;color:var(--dim);font-weight:600}
+  .tips ul{margin:0;padding-left:16px;font-size:12px;line-height:1.85;color:var(--mute)}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l3 6 6 .9-4.5 4.3 1.1 6.3L12 16.6 6.4 19.5l1.1-6.3L3 8.9 9 8z"></path>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>初始化 {{SITE_TITLE}}</h1>
+        <p>创建管理员账号，仅需一次</p>
+      </div>
+    </div>
+
+    <div class="alert" id="errBox"></div>
+    <form id="setupForm">
+      <div class="field">
+        <label for="u">管理员用户名</label>
+        <input type="text" id="u" placeholder="例如 admin" required maxlength="32" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="p">登录密码</label>
+        <input type="password" id="p" placeholder="至少 6 位" required minlength="6" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="p2">确认密码</label>
+        <input type="password" id="p2" placeholder="再次输入密码" required minlength="6" autocomplete="new-password">
+      </div>
+      <button class="btn" id="submitBtn" type="submit">创建并进入</button>
+    </form>
+
+    <div class="tips">
+      <h2>接下来可以做</h2>
+      <ul>
+        <li>在「设置 → 安全」里填写 Turnstile 密钥，开启人机验证</li>
+        <li>在「设置 → 外观」里修改站点名称与主题</li>
+        <li>所有文件都存放在自动创建的 R2 存储桶中</li>
+      </ul>
+    </div>
+  </div>
+<script>
+(function () {
+  var form = document.getElementById('setupForm');
+  var btn = document.getElementById('submitBtn');
+  var errBox = document.getElementById('errBox');
+
+  function showErr(msg) { errBox.textContent = msg; errBox.classList.add('show'); }
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    errBox.classList.remove('show');
+
+    var username = document.getElementById('u').value.trim();
+    var password = document.getElementById('p').value;
+    var confirm = document.getElementById('p2').value;
+
+    if (!username) return showErr('请填写用户名');
+    if (password.length < 6) return showErr('密码至少 6 位');
+    if (password !== confirm) return showErr('两次输入的密码不一致');
+
+    btn.disabled = true;
+    btn.textContent = '创建中…';
+
+    fetch('/api/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password })
+    }).then(function (res) {
+      return res.json().catch(function () { return { message: 'HTTP ' + res.status }; })
+        .then(function (d) { return { status: res.status, data: d }; });
+    }).then(function (r) {
+      if (r.data && r.data.success) {
+        location.replace('/');
+        return;
+      }
+      showErr((r.data && r.data.message) || ('初始化失败（HTTP ' + r.status + '）'));
+      btn.disabled = false;
+      btn.textContent = '创建并进入';
+    }).catch(function (e) {
+      showErr('网络错误：' + (e && e.message ? e.message : e));
+      btn.disabled = false;
+      btn.textContent = '创建并进入';
+    });
+  });
+})();
+</script>
+</body>
+</html>

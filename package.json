@@ -1,0 +1,16 @@
+{
+  "name": "cloud-notepad",
+  "version": "10.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Workers + R2 云端代码记事本 / 文件分享",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run --outdir=.wrangler/dry-run",
+    "test": "node tests/run.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}
